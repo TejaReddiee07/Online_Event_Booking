@@ -204,48 +204,60 @@ def approve(booking_id):
         {'$set': {'status': 'approved'}}
     )
 
-    # Check if there's linked food booking and approve it too
+    # Approve linked food booking if exists
     food_booking = None
-    if 'linked_food_booking' in booking and booking['linked_food_booking']:
-        food_booking = mongo.db.food_bookings.find_one({'_id': booking['linked_food_booking']})
+    if booking.get('linked_food_booking'):
+        food_booking = mongo.db.food_bookings.find_one(
+            {'_id': booking['linked_food_booking']}
+        )
         if food_booking:
             mongo.db.food_bookings.update_one(
                 {'_id': food_booking['_id']},
                 {'$set': {'status': 'approved'}}
             )
 
-    # Fetch organizer & hall info
+    # Organizer & hall info
     organizer = mongo.db.organizers.find_one({'_id': booking['org_id']})
     hall = mongo.db.halls.find_one({'_id': booking['hall_id']})
 
     if organizer and organizer.get('email') and hall:
         try:
-            # Calculate total (hall + food if exists)
             total_amount = booking.get('total_price', 0)
             food_details = ""
-            
+
             if food_booking:
                 total_amount += food_booking.get('total_price', 0)
-                food_pkg = mongo.db.food_packages.find_one({'_id': food_booking['package_id']})
-                food_details = f"\nFood: {food_pkg['name']} - {food_booking['plates']} plates (₹{food_booking['total_price']})"
-            
+                food_pkg = mongo.db.food_packages.find_one(
+                    {'_id': food_booking['package_id']}
+                )
+                if food_pkg:
+                    food_details = (
+                        f"\nFood: {food_pkg['name']} - "
+                        f"{food_booking['plates']} plates "
+                        f"(₹{food_booking['total_price']})"
+                    )
+
             send_booking_confirm_email_with_food(
                 to_email=organizer['email'],
                 hall_name=hall.get('title', 'your hall'),
-                hall_location=hall.get('location', 'Not specified'),  # NEW: Add location
+                hall_location=hall.get('location', 'Not specified'),
                 from_date=booking.get('from_date', ''),
                 to_date=booking.get('to_date', ''),
                 hall_price=booking.get('total_price', 0),
                 food_details=food_details,
                 total_amount=total_amount,
-                booking_id=str(booking['_id'])
+                booking_id=str(booking['_id']),
             )
+
             flash('Booking(s) approved and organizer notified by email!', 'success')
         except Exception as e:
-            flash(f'Booking approved but email failed: {str(e)}', 'warning')
+            # This shows in UI AND logs (via Flask logger)
+            current_app.logger.exception("Email sending failed")
+            flash(f'Booking approved but email failed: {e}', 'warning')
     else:
         flash('Booking approved!', 'success')
 
     return redirect(url_for('admin.bookings'))
+
 
 
