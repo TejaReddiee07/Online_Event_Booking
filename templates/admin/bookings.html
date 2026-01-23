@@ -58,6 +58,7 @@
                                 <th>Hall Total (₹)</th>
                                 <th>Food Plates</th>
                                 <th>Food Total (₹)</th>
+                                <th>Food Package</th>
                                 <th>Type</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -109,6 +110,15 @@
                                     {% endif %}
                                 </td>
 
+                                {# Food package name #}
+                                <td>
+                                    {% if booking.combined_type == 'Hall + Food' or booking.combined_type == 'Food Only' %}
+                                        {{ booking.food_package_name or '-' }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
                                 <td>{{ booking.combined_type or 'Hall Only' }}</td>
                                 <td>
                                     {% set status = booking.get('status', 'pending') %}
@@ -117,19 +127,19 @@
                                     </span>
                                 </td>
                                 <td class="d-flex gap-1">
-    {% if booking.get('status', 'pending') == 'pending' %}
-        <a href="{{ url_for('admin.approve', booking_id=booking._id) }}"
-           class="btn btn-sm btn-success">
-            Approve
-        </a>
-        <a href="{{ url_for('admin.reject', booking_id=booking._id) }}"
-           class="btn btn-sm btn-danger">
-            Reject
-        </a>
-    {% else %}
-        <span class="text-success">✓ {{ booking.status|upper }}</span>
-    {% endif %}
-</td>
+                                    {% if booking.get('status', 'pending') == 'pending' %}
+                                        <a href="{{ url_for('admin.approve', booking_id=booking._id) }}"
+                                           class="btn btn-sm btn-success">
+                                            Approve
+                                        </a>
+                                        <a href="{{ url_for('admin.reject', booking_id=booking._id) }}"
+                                           class="btn btn-sm btn-danger">
+                                            Reject
+                                        </a>
+                                    {% else %}
+                                        <span class="text-success">✓ {{ booking.status|upper }}</span>
+                                    {% endif %}
+                                </td>
 
                             </tr>
                             {% endfor %}
