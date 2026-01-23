@@ -14,9 +14,7 @@ from utils_email import (
     send_booking_confirm_email_with_food,
 )
 
-
 admin_bp = Blueprint('admin', __name__)
-
 
 @login_required
 def require_admin(role):
@@ -184,17 +182,28 @@ def bookings():
 
         if booking.get('linked_food_booking'):
             booking['combined_type'] = 'Hall + Food'
-            # NEW: attach food price and plates for display
+            # attach food price and plates for display
             food_booking = mongo.db.food_bookings.find_one(
                 {'_id': booking['linked_food_booking']}
             )
             if food_booking:
                 booking['food_plates'] = food_booking.get('plates', 0)
                 booking['food_total'] = food_booking.get('total_price', 0)
+
+                # NEW: food package name
+                food_pkg = mongo.db.food_packages.find_one(
+                    {'_id': food_booking.get('package_id')}
+                )
+                booking['food_package_name'] = food_pkg.get('name') if food_pkg else 'N/A'
+            else:
+                booking['food_plates'] = None
+                booking['food_total'] = None
+                booking['food_package_name'] = '-'
         else:
             booking['combined_type'] = 'Hall Only'
             booking['food_plates'] = None
             booking['food_total'] = None
+            booking['food_package_name'] = '-'
 
     return render_template('admin/bookings.html', bookings=bookings_list)
 
@@ -231,6 +240,7 @@ def hall_bookings():
         booking['combined_type'] = 'Hall Only'
         booking['food_plates'] = None
         booking['food_total'] = None
+        booking['food_package_name'] = '-'   # keep column consistent
 
     return render_template('admin/bookings.html', bookings=bookings_list)
 
@@ -266,6 +276,9 @@ def food_bookings():
         b['food_plates'] = b.get('plates', 0)
         b['food_total'] = b.get('total_price', 0)
 
+        # NEW: food package name
+        b['food_package_name'] = pkg.get('name') if pkg else 'N/A'
+
     return render_template('admin/bookings.html', bookings=bookings)
 
 
@@ -297,16 +310,23 @@ def hall_food_bookings():
 
         booking['combined_type'] = 'Hall + Food'
 
-        # NEW: attach food plates and price for this combined booking
+        # attach food plates and price for this combined booking
         food_booking = mongo.db.food_bookings.find_one(
             {'_id': booking['linked_food_booking']}
         )
         if food_booking:
             booking['food_plates'] = food_booking.get('plates', 0)
             booking['food_total'] = food_booking.get('total_price', 0)
+
+            # NEW: food package name
+            food_pkg = mongo.db.food_packages.find_one(
+                {'_id': food_booking.get('package_id')}
+            )
+            booking['food_package_name'] = food_pkg.get('name') if food_pkg else 'N/A'
         else:
             booking['food_plates'] = None
             booking['food_total'] = None
+            booking['food_package_name'] = '-'
 
     return render_template('admin/bookings.html', bookings=bookings_list)
 
@@ -387,6 +407,10 @@ def approve(booking_id):
 
     return redirect(url_for('admin.bookings'))
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9c188a1f8ff802c7838f52227f90d5278443d814
 @admin_bp.route('/reject/<booking_id>')
 @login_required
 def reject(booking_id):
